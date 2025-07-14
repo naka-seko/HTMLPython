@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動的辞書アプリ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #searchForm {
+            margin-bottom: 10px;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 5px;
+        }
+        button {
+            padding: 5px 10px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>動的辞書アプリ</h1>
+    <form id="searchForm">
+        <label for="word">単語を入力してください：</label>
+        <input type="text" id="word" placeholder="例: apple">
+        <button type="button" id="searchButton">検索</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        async function searchWord() {
+            const word = document.getElementById('word').value.trim().toLowerCase();
+            const resultDiv = document.getElementById('result');
+
+            if (word === "") {
+                resultDiv.textContent = "単語を入力してください！";
+                return;
+            }
+
+            try {
+                const response = await fetch(`/search?word=${encodeURIComponent(word)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.textContent = `「${word}」の意味: ${data.meaning}`;
+                } else {
+                    resultDiv.textContent = `辞書で見つかりませんでした。ステータスコード: ${response.status}`;
+                }
+            } catch (error) {
+                resultDiv.textContent = "エラーが発生しました。後で試してください。";
+            }
+        }
+
+        document.getElementById('searchButton').addEventListener('click', searchWord);
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+apple,りんご
+orange,みかん
+peach,もも
+grape,ぶどう
+grapefruit,グレープフルーツ
