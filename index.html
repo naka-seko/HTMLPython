@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>動的辞書アプリ</title>
+    <title>英単語辞書アプリ</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,21 +26,62 @@
     </style>
 </head>
 <body>
-    <h1>動的辞書アプリ</h1>
+    <h1>英単語辞書アプリ</h1>
     <form id="searchForm">
-        <label for="word">単語を入力してください：</label>
+        <label for="word">英単語を入力して下さい：</label>
         <input type="text" id="word" placeholder="例: apple">
         <button type="button" id="searchButton">検索</button>
     </form>
     <div id="result"></div>
+    <br>
+
+    <form action="/add" method="POST">
+        <label>英単語: <input type="text" name="word"></label><br>
+        <label>日本語: <input type="text" name="meaning"></label><br>
+        <button type="submit">追加</button>
+    </form>
+    <div id="result_a"></div>
+    <br>
+
+    <form action="/update" method="POST">
+        <label>英単語: <input type="text" name="word"></label><br>
+        <label>日本語: <input type="text" name="meaning"></label><br>
+        <button type="submit">更新</button>
+    </form>
+    <div id="result_u"></div>
+    <br>
+
+    <form action="/delete" method="POST">
+        <label>英単語: <input type="text" name="word"></label><br>
+        <button type="submit">削除</button>
+    </form>
+    <div id="result_d"></div>
 
     <script>
+        document.getElementById('searchButton').addEventListener('click', searchWord);
+
+        //初期ロード時、入力ボックスにフォーカス
+        window.onload = function() {
+            document.getElementById('word').focus(); // 初期ロード時に検索ボックスにフォーカス
+        };
+
+        // Enterキーで検索
+        document.getElementById('word').addEventListener('keydown', function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // フォーム送信を防止
+                searchWord(); // 検索関数を呼び出し
+            }
+        });
+
+        // 検索機能
         async function searchWord() {
-            const word = document.getElementById('word').value.trim().toLowerCase();
+            const inputBox = document.getElementById('word');
+            const word = inputBox.value.trim().toLowerCase();
             const resultDiv = document.getElementById('result');
 
             if (word === "") {
-                resultDiv.textContent = "単語を入力してください！";
+                resultDiv.textContent = "英単語を入力して下さい！";
+                inputBox.focus(); // 入力ボックスにフォーカスを戻す
                 return;
             }
 
@@ -48,16 +89,117 @@
                 const response = await fetch(`/search?word=${encodeURIComponent(word)}`);
                 if (response.ok) {
                     const data = await response.json();
-                    resultDiv.textContent = `「${word}」の意味: ${data.meaning}`;
+                    resultDiv.textContent = `「${word}」の日本語: ${data.meaning}`;
                 } else {
                     resultDiv.textContent = `辞書で見つかりませんでした。ステータスコード: ${response.status}`;
                 }
             } catch (error) {
                 resultDiv.textContent = "エラーが発生しました。後で試してください。";
             }
+
+            inputBox.focus(); // 入力ボックスにフォーカスを戻す
         }
 
+        // 追加機能
+    async function addWord() {
+        const word = document.querySelector('form[action="/add"] input[name="word"]').value.trim();
+        const meaning = document.querySelector('form[action="/add"] input[name="meaning"]').value.trim();
+        const resultDiv = document.getElementById('result_a');
+
+        if (!word || !meaning) {
+            resultDiv.textContent = `追加する単語を入力して下さい！`;
+            return;
+        }
+
+        try {
+            const response = await fetch("/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ word, meaning }),
+            });
+
+            if (response.ok) {
+                resultDiv.textContent = `追加しました。`;
+            } else {
+                resultDiv.textContent = `英単語があるので、追加出来ません。`;
+            }
+        } catch (error) {
+            resultDiv.textContent = `エラーが発生しました。`;
+        }
+}
+
+        // 更新機能
+    async function updateWord() {
+        const word = document.querySelector('form[action="/update"] input[name="word"]').value.trim();
+        const meaning = document.querySelector('form[action="/update"] input[name="meaning"]').value.trim();
+        const resultDiv = document.getElementById('result_u');
+
+        if (!word || !meaning) {
+            resultDiv.textContent = `更新する単語を入力して下さい！`;
+            return;
+        }
+
+        try {
+            const response = await fetch("/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ word, meaning }),
+            });
+
+            if (response.ok) {
+                resultDiv.textContent = `更新しました。`;
+            } else {
+                resultDiv.textContent = `英単語が無いので、更新出来ません。`;
+            }
+        } catch (error) {
+            resultDiv.textContent = `エラーが発生しました。`;
+        }
+}
+
+        // 削除機能
+    async function deleteWord() {
+        const word = document.querySelector('form[action="/delete"] input[name="word"]').value.trim();
+        const resultDiv = document.getElementById('result_d');
+
+        if (!word) {
+            resultDiv.textContent = `削除する英単語を入力して下さい！`;
+            return;
+        }
+
+        try {
+            const response = await fetch("/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ word }),
+            });
+
+            if (response.ok) {
+                resultDiv.textContent = `削除しました。`;
+            } else {
+                resultDiv.textContent = `英単語が無いので、削除出来ません。`;
+            }
+        } catch (error) {
+            resultDiv.textContent = `エラーが発生しました。`;
+        }
+    }
+
+        // 各種機能
         document.getElementById('searchButton').addEventListener('click', searchWord);
+
+        document.querySelector('form[action="/add"] button').addEventListener("click", (e) => {
+            e.preventDefault(); // フォーム送信を防ぐ
+            addWord();
+        });
+
+        document.querySelector('form[action="/update"] button').addEventListener("click", (e) => {
+            e.preventDefault();
+            updateWord();
+        });
+
+        document.querySelector('form[action="/delete"] button').addEventListener("click", (e) => {
+            e.preventDefault();
+            deleteWord();
+});
     </script>
 </body>
 </html>
