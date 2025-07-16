@@ -9,6 +9,36 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
+
+        @keyframes zoomIn {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        h1 {
+            animation: zoomIn 1s ease-in-out;
+            background: linear-gradient(to right, #ff7f50, #6a5acd);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        button {
+            background: linear-gradient(45deg, #6a5acd, #00bfff);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: linear-gradient(45deg, #00bfff, #6a5acd);
+        }
         #searchForm {
             margin-bottom: 10px;
         }
@@ -16,12 +46,28 @@
             width: 300px;
             padding: 5px;
         }
-        button {
-            padding: 5px 10px;
+
+        #result, #result_a, #result_u, #result_d {
+            padding: 10px;
+            border-radius: 5px;
         }
+
         #result {
+            display: block;
+            padding: 15px;
+            background: #e6f7ff; /* 水色の背景 */
+            border-left: 5px solid #1e90ff; /* 強調線 */
+            font-size: 1.3em;
             margin-top: 20px;
-            font-size: 1.2em;
+        }
+        .success {
+            color: #006400; /* 成功時の深緑 */
+        }
+        .error {
+            color: #ff0000; /* エラー時の赤 */
+        }
+        .not-found {
+            color: #808080; /* 見つからない場合の灰色 */
         }
     </style>
 </head>
@@ -65,6 +111,24 @@
             document.getElementById('word').focus(); // 初期ロード時に検索ボックスにフォーカス
         };
 
+    // 結果に応じてクラスを適用
+        function displayResult(message, status) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+
+            // 一旦すべてのクラスを削除
+            resultDiv.classList.remove('success', 'error', 'not-found');
+
+            // 状態に応じてクラスを追加
+            if (status === 'success') {
+                resultDiv.classList.add('success');
+            } else if (status === 'error') {
+                resultDiv.classList.add('error');
+            } else if (status === 'not-found') {
+                resultDiv.classList.add('not-found');
+            }
+        }
+
         // Enterキーで検索
         document.getElementById('word').addEventListener('keydown', function(event) {
             if (event.key === "Enter") {
@@ -78,110 +142,171 @@
             const inputBox = document.getElementById('word');
             const word = inputBox.value.trim().toLowerCase();
             const resultDiv = document.getElementById('result');
+            resultDiv.textContent = "";
 
             if (word === "") {
                 resultDiv.textContent = "英単語を入力して下さい！";
-                inputBox.focus(); // 入力ボックスにフォーカスを戻す
+                inputBox.focus(); // 検索ボックスにフォーカス戻す
                 return;
             }
 
             try {
-                const response = await fetch(`/search?word=${encodeURIComponent(word)}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    resultDiv.textContent = `「${word}」の日本語: ${data.meaning}`;
-                } else {
-                    resultDiv.textContent = `辞書で見つかりませんでした。ステータスコード: ${response.status}`;
-                }
+                resultDiv.textContent = "検索中..."; // 表示を一旦更新
+                const data = await fetchWordMeaning(word); // 意味を取得
+                resultDiv.textContent = data.meaning;
             } catch (error) {
-                resultDiv.textContent = "エラーが発生しました。後で試してください。";
+                resultDiv.textContent = `検索に失敗しました。ステータスコード: ${error.message}`;
             }
 
-            inputBox.focus(); // 入力ボックスにフォーカスを戻す
+            inputBox.focus(); // 検索ボックスにフォーカス戻す
+        }
+
+        // 英単語から日本語を取得する関数
+        async function fetchWordMeaning(word) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = "";
+
+            try {
+                const response = await fetch(`/search?word=${encodeURIComponent(word)}`);
+
+                if (!response.ok) {
+                    handleError(response.status); // エラーハンドリングを関数化
+                    return;
+                }
+
+                const data = await response.json();
+
+                handleSuccess(data, word); // 成功時の処理を関数化
+
+            } catch (error) {
+                console.error(error);
+                resultDiv.textContent = "ネットワークエラーが発生しました。後で試してください。";
+                displayResult(resultDiv.textContent, 'error'); // ネットワークエラー時
+            }
+        }
+
+        // エラーハンドリングの関数
+        function handleError(status) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = "";
+
+            const errorMessages = {
+                404: "リクエストされたリソースが見つかりません。",
+                500: "サーバー内部エラーが発生しました。",
+            };
+            const message = errorMessages[status] || `サーバーエラー: ステータスコード ${status}`;
+            resultDiv.textContent = message;
+            displayResult(message, 'error');
+        }
+
+        // 成功時の処理関数
+        function handleSuccess(data, word) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = "";
+
+            if (data && typeof data.meaning !== 'undefined') {
+                const message = `「${word}」の日本語: ${data.meaning}`;
+                resultDiv.textContent = message;
+                displayResult(message, 'success');
+            } else if (data) {
+                const message = `「${word}」が辞書で見つかりませんでした。`;
+                resultDiv.textContent = message;
+                displayResult(message, 'not-found');
+            } else {
+                const message = "データが取得できませんでした。";
+                resultDiv.textContent = message;
+                displayResult(message, 'error');
+            }
         }
 
         // 追加機能
-    async function addWord() {
-        const word = document.querySelector('form[action="/add"] input[name="word"]').value.trim();
-        const meaning = document.querySelector('form[action="/add"] input[name="meaning"]').value.trim();
-        const resultDiv = document.getElementById('result_a');
+        async function addWord() {
+            const word = document.querySelector('form[action="/add"] input[name="word"]').value.trim();
+            const meaning = document.querySelector('form[action="/add"] input[name="meaning"]').value.trim();
+            const resultDiv = document.getElementById('result_a');
 
-        if (!word || !meaning) {
-            resultDiv.textContent = `追加する単語を入力して下さい！`;
-            return;
-        }
-
-        try {
-            const response = await fetch("/add", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ word, meaning }),
-            });
-
-            if (response.ok) {
-                resultDiv.textContent = `追加しました。`;
-            } else {
-                resultDiv.textContent = `英単語があるので、追加出来ません。`;
+            if (!word || !meaning) {
+                resultDiv.textContent = `追加する単語を入力して下さい！`;
+                return;
             }
-        } catch (error) {
-            resultDiv.textContent = `エラーが発生しました。`;
+
+            try {
+                const response = await fetch("/add", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ word, meaning }),
+                });
+
+                if (response.ok) {
+                    resultDiv.textContent = `追加しました。`;
+                } else {
+                    resultDiv.textContent = `英単語があるので、追加出来ません。`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `エラーが発生しました。`;
+            }
         }
-}
 
         // 更新機能
-    async function updateWord() {
-        const word = document.querySelector('form[action="/update"] input[name="word"]').value.trim();
-        const meaning = document.querySelector('form[action="/update"] input[name="meaning"]').value.trim();
-        const resultDiv = document.getElementById('result_u');
+        async function updateWord() {
+            const word = document.querySelector('form[action="/update"] input[name="word"]').value.trim();
+            const wordInput = document.querySelector('form[action="/update"] input[name="word"]');
+            const meaning = document.querySelector('form[action="/update"] input[name="meaning"]').value.trim();
+            const resultDiv = document.getElementById('result_u');
 
-        if (!word || !meaning) {
-            resultDiv.textContent = `更新する単語を入力して下さい！`;
-            return;
-        }
-
-        try {
-            const response = await fetch("/update", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ word, meaning }),
-            });
-
-            if (response.ok) {
-                resultDiv.textContent = `更新しました。`;
-            } else {
-                resultDiv.textContent = `英単語が無いので、更新出来ません。`;
+            if (!word || !meaning) {
+                resultDiv.textContent = `更新する単語を入力して下さい！`;
+                wordInput.focus(); // 更新ボックスにフォーカス
+                return;
             }
-        } catch (error) {
-            resultDiv.textContent = `エラーが発生しました。`;
+
+            try {
+                const response = await fetch("/update", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ word, meaning }),
+                });
+
+                if (response.ok) {
+                    resultDiv.textContent = `更新しました。`;
+                } else {
+                    resultDiv.textContent = `英単語が無いので、更新出来ません。`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `エラーが発生しました。`;
+            }
+            document.getElementById('word').focus();// 検索ボックスにフォーカス
         }
-}
 
         // 削除機能
-    async function deleteWord() {
-        const word = document.querySelector('form[action="/delete"] input[name="word"]').value.trim();
-        const resultDiv = document.getElementById('result_d');
+        async function deleteWord() {
+            const word = document.querySelector('form[action="/delete"] input[name="word"]').value.trim();
+            const wordInput = document.querySelector('form[action="/delete"] input[name="word"]');
+            const resultDiv = document.getElementById('result_d');
 
-        if (!word) {
-            resultDiv.textContent = `削除する英単語を入力して下さい！`;
-            return;
-        }
-
-        try {
-            const response = await fetch("/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ word }),
-            });
-
-            if (response.ok) {
-                resultDiv.textContent = `削除しました。`;
-            } else {
-                resultDiv.textContent = `英単語が無いので、削除出来ません。`;
+            if (!word) {
+                resultDiv.textContent = `削除する英単語を入力して下さい！`;
+                wordInput.focus(); // 削除ボックスにフォーカス
+                return;
             }
-        } catch (error) {
-            resultDiv.textContent = `エラーが発生しました。`;
+
+            try {
+                const response = await fetch("/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ word }),
+                });
+
+                if (response.ok) {
+                    resultDiv.textContent = `削除しました。`;
+                } else {
+                    resultDiv.textContent = `英単語が無いので、削除出来ません。`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `エラーが発生しました。`;
+            }
+            document.getElementById('word').focus(); // 検索ボックスにフォーカス
         }
-    }
 
         // 各種機能
         document.getElementById('searchButton').addEventListener('click', searchWord);
@@ -199,7 +324,7 @@
         document.querySelector('form[action="/delete"] button').addEventListener("click", (e) => {
             e.preventDefault();
             deleteWord();
-});
+        });
     </script>
 </body>
 </html>
