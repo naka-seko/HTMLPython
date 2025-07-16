@@ -28,21 +28,20 @@ class MyHandler(BaseHTTPRequestHandler):
         if parsed_path.path == "/search":
             word = query.get("word", [""])[0].strip().lower()
 
-            self.send_response(200)
+            if word and word in english_words:
+                self.send_response(200)  # データが見つかった場合
+                response = {"meaning": english_words[word]}
+            elif word:  # 単語が指定されているが見つからない場合
+                self.send_response(404)  # データが見つからない場合
+                response = {"error": f"単語 '{word}' は見つかりません"}
+            else:  # 無効なリクエストまたは単語が指定されていない場合
+                print(f"400 Bad Request: {parsed_path.path}")  # ログ出力
+                self.send_response(400)  # 不正なリクエスト
+                response = {"error": "無効なリクエスト"}
+
             self.send_header("Content-type", "application/json; charset=utf-8")
             self.end_headers()
-
-            if word and word in english_words:
-                response = {"meaning": english_words[word]}
-            else:
-                response = {"meaning": "見つかりません"}
-
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode("utf-8"))
-        else:
-            print(f"404 Not Found: {parsed_path.path}")  # ログ出力
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b"Not Found")
 
     # ファイルの読み込んで、辞書作成
     def file_line_set(self):
