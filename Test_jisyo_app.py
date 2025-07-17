@@ -31,12 +31,12 @@ class MyHandler(BaseHTTPRequestHandler):
             if word and word in english_words:
                 self.send_response(200)  # データが見つかった場合
                 response = {"meaning": english_words[word]}
-            elif word:  # 単語が指定されているが見つからない場合
-                self.send_response(404)  # データが見つからない場合
-                response = {"error": f"単語 '{word}' は見つかりません"}
+            elif word:
+                self.send_response(201)  # データが見つからない場合
+                response = {}
             else:  # 無効なリクエストまたは単語が指定されていない場合
                 print(f"400 Bad Request: {parsed_path.path}")  # ログ出力
-                self.send_response(400)  # 不正なリクエスト
+                self.send_response(500)  # 不正なリクエスト
                 response = {"error": "無効なリクエスト"}
 
             self.send_header("Content-type", "application/json; charset=utf-8")

@@ -30,6 +30,9 @@
         }
 
         button {
+            padding: 10px 20px; /* サイズ調整 */
+            font-size: 16px;   /* テキストの大きさ */
+            border-radius: 5px; /* 丸みを追加 */
             background: linear-gradient(45deg, #6a5acd, #00bfff);
             color: white;
             border: none;
@@ -83,7 +86,7 @@
 
     <form action="/add" method="POST">
         <label>英単語: <input type="text" name="word"></label><br>
-        <label>日本語: <input type="text" name="meaning"></label><br>
+        <label>日本語: <input type="text" id="japaneseInput" name="meaning" onfocus="switchIME(true)" onblur="switchIME(false)"></label><br>
         <button type="submit">追加</button>
     </form>
     <div id="result_a"></div>
@@ -91,7 +94,7 @@
 
     <form action="/update" method="POST">
         <label>英単語: <input type="text" name="word"></label><br>
-        <label>日本語: <input type="text" name="meaning"></label><br>
+        <label>日本語: <input type="text" id="japaneseInput" name="meaning" onfocus="switchIME(true)" onblur="switchIME(false)"></label><br>
         <button type="submit">更新</button>
     </form>
     <div id="result_u"></div>
@@ -104,6 +107,11 @@
     <div id="result_d"></div>
 
     <script>
+        function switchIME(isFocused) {
+            const inputElement = document.getElementById("japaneseInput");
+            inputElement.style.imeMode = isFocused ? "active" : "inactive";
+        }
+
         document.getElementById('searchButton').addEventListener('click', searchWord);
 
         //初期ロード時、入力ボックスにフォーカス
@@ -139,6 +147,18 @@
 
         // 検索機能
         async function searchWord() {
+            // 入力欄をクリア
+            document.querySelector('form[action="/add"] input[name="word"]').value = '';
+            document.querySelector('form[action="/add"] input[name="meaning"]').value = '';
+            document.querySelector('form[action="/update"] input[name="word"]').value = '';
+            document.querySelector('form[action="/update"] input[name="meaning"]').value = '';
+            document.querySelector('form[action="/delete"] input[name="word"]').value = '';
+
+            // メッセージをクリア
+            document.getElementById('result_a').textContent = '';
+            document.getElementById('result_u').textContent = '';
+            document.getElementById('result_d').textContent = '';
+
             const inputBox = document.getElementById('word');
             const word = inputBox.value.trim().toLowerCase();
             const resultDiv = document.getElementById('result');
@@ -153,7 +173,6 @@
             try {
                 resultDiv.textContent = "検索中..."; // 表示を一旦更新
                 const data = await fetchWordMeaning(word); // 意味を取得
-                resultDiv.textContent = data.meaning;
             } catch (error) {
                 resultDiv.textContent = `検索に失敗しました。ステータスコード: ${error.message}`;
             }
@@ -175,11 +194,9 @@
                 }
 
                 const data = await response.json();
-
                 handleSuccess(data, word); // 成功時の処理を関数化
 
             } catch (error) {
-                console.error(error);
                 resultDiv.textContent = "ネットワークエラーが発生しました。後で試してください。";
                 displayResult(resultDiv.textContent, 'error'); // ネットワークエラー時
             }
@@ -191,7 +208,6 @@
             resultDiv.textContent = "";
 
             const errorMessages = {
-                404: "リクエストされたリソースが見つかりません。",
                 500: "サーバー内部エラーが発生しました。",
             };
             const message = errorMessages[status] || `サーバーエラー: ステータスコード ${status}`;
@@ -222,8 +238,10 @@
         // 追加機能
         async function addWord() {
             const word = document.querySelector('form[action="/add"] input[name="word"]').value.trim();
+            const wordInput = document.querySelector('form[action="/add"] input[name="word"]');
             const meaning = document.querySelector('form[action="/add"] input[name="meaning"]').value.trim();
             const resultDiv = document.getElementById('result_a');
+            wordInput.focus(); // 追加ボックスにフォーカス
 
             if (!word || !meaning) {
                 resultDiv.textContent = `追加する単語を入力して下さい！`;
@@ -239,6 +257,7 @@
 
                 if (response.ok) {
                     resultDiv.textContent = `追加しました。`;
+                    document.getElementById('word').focus();// 検索ボックスにフォーカス
                 } else {
                     resultDiv.textContent = `英単語があるので、追加出来ません。`;
                 }
@@ -253,10 +272,10 @@
             const wordInput = document.querySelector('form[action="/update"] input[name="word"]');
             const meaning = document.querySelector('form[action="/update"] input[name="meaning"]').value.trim();
             const resultDiv = document.getElementById('result_u');
+            wordInput.focus(); // 更新ボックスにフォーカス
 
             if (!word || !meaning) {
                 resultDiv.textContent = `更新する単語を入力して下さい！`;
-                wordInput.focus(); // 更新ボックスにフォーカス
                 return;
             }
 
@@ -269,13 +288,13 @@
 
                 if (response.ok) {
                     resultDiv.textContent = `更新しました。`;
+                    document.getElementById('word').focus();// 検索ボックスにフォーカス
                 } else {
                     resultDiv.textContent = `英単語が無いので、更新出来ません。`;
                 }
             } catch (error) {
                 resultDiv.textContent = `エラーが発生しました。`;
             }
-            document.getElementById('word').focus();// 検索ボックスにフォーカス
         }
 
         // 削除機能
@@ -283,10 +302,10 @@
             const word = document.querySelector('form[action="/delete"] input[name="word"]').value.trim();
             const wordInput = document.querySelector('form[action="/delete"] input[name="word"]');
             const resultDiv = document.getElementById('result_d');
+            wordInput.focus(); // 削除ボックスにフォーカス
 
             if (!word) {
                 resultDiv.textContent = `削除する英単語を入力して下さい！`;
-                wordInput.focus(); // 削除ボックスにフォーカス
                 return;
             }
 
@@ -299,13 +318,13 @@
 
                 if (response.ok) {
                     resultDiv.textContent = `削除しました。`;
+                    document.getElementById('word').focus(); // 検索ボックスにフォーカス
                 } else {
                     resultDiv.textContent = `英単語が無いので、削除出来ません。`;
                 }
             } catch (error) {
                 resultDiv.textContent = `エラーが発生しました。`;
             }
-            document.getElementById('word').focus(); // 検索ボックスにフォーカス
         }
 
         // 各種機能
