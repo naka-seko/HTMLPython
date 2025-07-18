@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>人事データ抽出</title>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // 初期フォーカス設定
+            const inputField = document.querySelector('input[name="nenrei"]');
+            inputField.focus();
+
+            // Enterキーで送信処理
+            inputField.addEventListener("keydown", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault(); // デフォルト動作を防ぐ
+                    document.querySelector('form').submit(); // フォーム送信
+                }
+            });
+        });
+    </script>
+</head>
+<style>
+    h1 {
+        text-align: center;
+        font-weight:bold;
+        background-color: #f3f3f3;
+        color: #2E8B57;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: 'Arial', sans-serif;
+        font-size: 2em;
+    }
+
+    .block > * {
+        margin-bottom: 20px; /* 各要素の下に20pxの余白を追加 */
+    }
+    .highlight {
+        color: #ffffff; /* 文字の色を白に */
+        background-color: #ff4500; /* 背景色をオレンジ系に */
+        padding: 5px 10px; /* 余白を追加して目立たせる */
+        border-radius: 5px; /* 角を丸くして柔らかい印象に */
+        font-size: 20px; /* フォントサイズを調整 */
+        font-weight: bold; /* 文字を太字に */
+    }
+    .highlight-input {
+        font-size: 20px; /* フォントサイズを大きくして視認性をアップ */
+        padding: 10px; /* フィールドに余白を追加 */
+        border: 2px solid #ff4500; /* 太めの枠線をオレンジ色で */
+        border-radius: 5px; /* 角を少し丸めて柔らかい印象に */
+        background-color: #fce4ec; /* 背景を淡いピンクに設定 */
+        color: #000; /* テキストの色を黒に */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 少し影をつけて浮き上がらせる効果を追加 */
+    }
+    button {
+        padding: 10px 20px; /* サイズ調整 */
+        font-size: 16px;   /* テキストの大きさ */
+        border-radius: 5px; /* 丸みを追加 */
+        background: linear-gradient(45deg, #6a5acd, #00bfff);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    button:hover {
+        background: linear-gradient(45deg, #00bfff, #6a5acd);
+    }
+</style>
+<body>
+    <h1>対象人事データ</h1>
+    <form method="POST" action="/filter">
+        <label class="highlight">対象年齢（以上抽出）を入力して下さい: </label>
+        <input type="number" id="nenrei" name="nenrei" required class="highlight-input" />
+        <br>
+        <button type="submit">抽出</button>
+    </form>
+</body>
+</html>
