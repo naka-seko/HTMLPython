@@ -13,7 +13,7 @@
             inputField.addEventListener("keydown", function(event) {
                 if (event.key === "Enter") {
                     event.preventDefault(); // デフォルト動作を防ぐ
-                    document.querySelector('form').submit(); // フォーム送信
+                    fetchData(); // データ取得処理を呼び出し
                 }
             });
         });
@@ -64,14 +64,69 @@
     button:hover {
         background: linear-gradient(45deg, #00bfff, #6a5acd);
     }
+    #result-area {
+        color: #006400; /* 深緑色 */
+        background-color: #f3f3f3; /* 淡い背景色でコントラストを追加 */
+        padding: 10px; /* 余白を追加 */
+        border: 1px solid #006400; /* 境界線も深緑で統一 */
+        border-radius: 5px; /* 角を少し丸くする */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 少し影をつけて浮き上がらせる */
+        font-size: 18px; /* フォントサイズを大きくして目立たせる */
+    }
 </style>
 <body>
     <h1>対象人事データ</h1>
     <form method="POST" action="/filter">
         <label class="highlight">対象年齢（以上抽出）を入力して下さい: </label>
         <input type="number" id="nenrei" name="nenrei" required class="highlight-input" />
+        <!-- HTML部分 -->
         <br>
-        <button type="submit">抽出</button>
-    </form>
+        <br>
+        <button id="extract-btn">抽出（一覧表示）</button>
+        <div id="result-area"></div>
 </body>
+</form>
+    <script>
+        document.getElementById("extract-btn").addEventListener("click", function() {
+            fetchData(); // データ取得処理を呼び出し
+        });
+
+    function fetchData() {
+        const nenrei = document.getElementById("nenrei").value; // 入力値を取得
+        const resultArea = document.getElementById("result-area");
+
+        if (!nenrei || isNaN(nenrei) || nenrei <= 0) {
+            resultArea.style.color = "red"; // 赤色
+            resultArea.textContent = "年齢を選んで下さい。";
+            return
+        }
+
+        fetch("/filter", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `nenrei=${nenrei}`
+        })
+        .then(response => response.text()) // レスポンスをテキストに変換
+        .then(data => {
+            if (data.trim()) {
+                const lines = data.split("\n"); // 改行でデータ分割
+                resultArea.innerHTML = ""; // 結果を初期化
+                lines.forEach(line => {
+                    resultArea.style.color = "#006400"; // 深緑色
+                    const lineDiv = document.createElement("div");
+                    lineDiv.textContent = line; // 各行を1人ずつ表示
+                    resultArea.appendChild(lineDiv);
+                });
+            } else {
+                resultArea.style.color = "red"; // 赤色
+                resultArea.textContent = "該当データがありません。";
+            }
+        })
+        .catch(error => {
+            console.error("エラー:", error);
+            resultArea.style.color = "red"; // エラー時も赤色
+            document.getElementById("result-area").textContent = "エラーが発生しました。";
+        });
+    }
+</script>
 </html>
