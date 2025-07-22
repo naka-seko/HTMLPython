@@ -73,6 +73,28 @@
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 少し影をつけて浮き上がらせる */
         font-size: 18px; /* フォントサイズを大きくして目立たせる */
     }
+    .person {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        margin: 5px;
+    }
+
+    .person:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #fff;
+        color: #333;
+        padding: 5px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        white-space: nowrap;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+    }
 </style>
 <body>
     <h1>対象人事データ</h1>
@@ -84,6 +106,9 @@
         <br>
         <button id="extract-btn">抽出（一覧表示）</button>
         <div id="result-area"></div>
+        <div id="container">
+        <!-- Pythonが生成したツールチップHTMLがここに挿入されます -->
+        </div>
 </body>
 </form>
     <script>
@@ -114,7 +139,7 @@
                 lines.forEach(line => {
                     resultArea.style.color = "#006400"; // 深緑色
                     const lineDiv = document.createElement("div");
-                    lineDiv.textContent = line; // 各行を1人ずつ表示
+                    lineDiv.innerHTML = line; // innerHTML を使用して HTML を解釈
                     resultArea.appendChild(lineDiv);
                 });
             } else {
@@ -128,5 +153,15 @@
             document.getElementById("result-area").textContent = "エラーが発生しました。";
         });
     }
+    document.addEventListener("DOMContentLoaded", () => {
+        fetch("/extract_tooltips_v2")
+            .then(response => response.json())
+            .then(data => {
+            if (data.html) {
+                document.getElementById("container").innerHTML = data.html;
+            }
+        })
+            .catch(error => console.error("ツールチップデータの取得に失敗しました:", error));
+    });
 </script>
 </html>
