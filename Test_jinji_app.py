@@ -4,6 +4,9 @@ import pandas as pd
 import html
 from datetime import datetime, date
 # -*- coding: utf-8 -*-
+# 初期値設定
+jinjidata_csv = "jinji_data.csv"
+jinjifilter_csv = "jinji_filter.csv"
 
 # Flask アプリケーションを作成
 app = Flask(__name__)
@@ -26,12 +29,11 @@ def calculate_age(birthdate_str: str, fmt: str = '%Y/%m/%d') -> int:
     age = today.year - birth.year - ((today.month, today.day) < (birth.month, birth.day))
     return age
 
-# 人事データの読み込み
-# jinji_data.txt ファイルから人事データを読み込み、DataFrameに変換
+# 人事ファイルから人事データを読み込み、DataFrameに変換
 jinji_data = {'名前': [], '年齢': [], '職業': [], 'メール': [], '携帯番号': []}
 try:
     # ファイルを開いて、１行ずつリストを作成
-    with open("jinji_data.txt", "r", encoding="utf-8") as f:
+    with open(jinjidata_csv, "r", encoding="utf-8") as f:
         # １行ずつ読み込み、カンマで分割して辞書に追加
         for line in f:
             # 空行やカンマがない行はスキップ
@@ -52,7 +54,7 @@ try:
             jinji_data['携帯番号'].append(j_phone.strip())
 except FileNotFoundError:
     # ファイル無し
-    print("jinji_data.txt が見つかりません。空のリストで開始します。")
+    print(f"{jinjidata_csv}が見つかりません。空のリストで開始します。")
 except Exception as e_code:
     # エラー時
     print(f"エラーが発生しました: {e_code}")
@@ -81,6 +83,15 @@ def filter_data():
         for _, row in filtered.iterrows():
             tooltip = html.escape(f"メール: {row['メール']} | 携帯: {row['携帯番号']}")
             result_html += f"<div class='person' data-tooltip='{tooltip}'>{row['名前']} ({row['年齢']}歳) - {row['職業']}</div><br>"
+
+        # フィルター結果をjinjifilter_csvに書き出し
+        if not filtered.empty:
+            filtered.to_csv(jinjifilter_csv, index=False, encoding="utf-8")
+        else:
+            # 空のDataFrameなら空ファイルを作成
+            pd.DataFrame(columns=jinji_df.columns).to_csv(jinjifilter_csv, index=False, encoding="utf-8")
+
+        # フィルター結果を返す。空ならメッセージを返す
         return result_html if result_html else "該当データがありません。"
     except KeyError:
         # 年齢フィールドが存在しない場合
@@ -95,10 +106,28 @@ def filter_data():
             mimetype='text/plain',
             status=500
         )
+
+# ツールチップ抽出処理
+@app.route('/extract_tooltips_v2', methods=['GET'])
+def extract_tooltips_v2():
+    # 処理内容
+    tooltips = []
+    for _, row in jinji_df.iterrows():
+        tooltip = {
+            'name': row['名前'],
+            'age': row['年齢'],
+            'occupation': row['職業'],
+            'email': row['メール'],
+            'phone': row['携帯番号']
+        }
+        tooltips.append(tooltip)
+        return jsonify(tooltips)
+
 # エラーハンドリング
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template("404.html"), 404
+
 @app.errorhandler(500)
 def internal_error(error):
     return render_template("500.html"), 500
