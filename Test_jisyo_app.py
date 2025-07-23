@@ -3,7 +3,7 @@ import urllib.parse
 import json
 
 # 初期値設定（ファイル名、辞書オブジェクト）
-jisyo_text = "jisyo_fruit.txt"
+jisyo_text = "jisyo_fruit.csv"
 english_words = {}
 
 class MyHandler(BaseHTTPRequestHandler):
