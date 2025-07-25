@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <title>人事データ抽出</title>
@@ -19,6 +19,7 @@
         });
     </script>
 </head>
+
 <style>
     h1 {
         text-align: center;
@@ -97,7 +98,38 @@
     }
 </style>
 <body>
-    <h1>対象人事データ</h1>
+    <h1>対象部署　人事データ</h1>
+    <form action="/抽出" method="POST">
+        <label class="highlight" for="department">部署名を選択して下さい:</label>
+        <select id="department" name="department" required>
+        </select>
+        <button type="submit">送信</button>
+        <div id="department-result-area"></div>
+        <div id="department-container">
+            <!-- Pythonが生成したツールチップHTMLがここに挿入されます -->
+        </div>
+    </form>
+    <script>
+        // 食魚リストを取得してドロップダウンに追加
+        fetch('/get_departments')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('department');
+                data.departments.forEach(department => {
+                    const option = document.createElement('option');
+                    option.value = department;
+                    option.textContent = department;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('部署リストの取得に失敗しました:', error);
+            });
+    </script>
+</body>
+
+<body>
+    <h1>対象年齢　人事データ</h1>
     <form method="POST" action="/filter">
         <label class="highlight">対象年齢（以上抽出）を入力して下さい: </label>
         <input type="number" id="nenrei" name="nenrei" required class="highlight-input" />
