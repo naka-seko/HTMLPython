@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 # 定義
 from flask import Flask, request, jsonify, render_template
 import pandas as pd
 import html
+import csv
+
 from datetime import datetime, date
-# -*- coding: utf-8 -*-
 # 初期値設定
 jinjidata_csv = "jinji_data.csv"
 jinjifilter_csv = "jinji_filter.csv"
@@ -30,13 +32,15 @@ def calculate_age(birthdate_str: str, fmt: str = '%Y/%m/%d') -> int:
     return age
 
 # 人事ファイルから人事データを読み込み、DataFrameに変換
-jinji_data = {'名前': [], '年齢': [], '職業': [], 'メール': [], '携帯番号': []}
+jinji_data = {'名前': [], '年齢': [], '部署': [], 'メール': [], '携帯番号': []}
 try:
     # ファイルを開いて、１行ずつリストを作成
     with open(jinjidata_csv, "r", encoding="utf-8") as f:
         # １行ずつ読み込み、カンマで分割して辞書に追加
-        for line in f:
-            # 空行やカンマがない行はスキップ
+        lines = f.readlines()
+        for line in lines[1:]:  # [1:]で1行目を除外
+            # 先頭と末尾の空白を削除し、カンマが含まれない行はスキップ
+            # また、空行やカンマがない行はスキップ
             line = line.strip()
             if not line or "," not in line:
                 continue
@@ -49,7 +53,7 @@ try:
             else:
                 jinji_data['年齢'].append(calculate_age(j_birthdate.strip()))
 
-            jinji_data['職業'].append(j_occupation.strip())
+            jinji_data['部署'].append(j_occupation.strip())
             jinji_data['メール'].append(j_email.strip())
             jinji_data['携帯番号'].append(j_phone.strip())
 except FileNotFoundError:
@@ -62,6 +66,53 @@ except Exception as e_code:
 # DataFrameに変換
 jinji_df = pd.DataFrame(jinji_data)
 #print(jinji_df)
+
+# フィルター結果を保存するCSVファイル
+@app.route('/get_departments', methods=['GET'])
+def get_departments():
+    # CSVファイルの読み込み（例: jinji_data.csv）
+    data = pd.read_csv(jinjidata_csv, encoding='utf-8')
+    departments = data['部署'].drop_duplicates().tolist()  # 部署を重複排除してリスト化
+    return jsonify({'departments': departments})
+
+# CSVファイルを読み込む関数
+def read_csv(file_name):
+    with open(file_name, "r", encoding="utf-8") as f:
+        # CSVファイルを読み込み、辞書形式でデータを取得
+        # ヘッダー行をスキップして、データをリストに格納
+        reader = csv.DictReader(f)
+        data = [row for row in reader]  # 各行を辞書としてリストに格納
+
+    # データが空なら空リストを返す
+    if not data:
+        return []
+
+    # 読み込んだデータを返す
+    return data
+
+# 部署リストを取得するエンドポイント
+@app.route("/抽出", methods=["POST"])
+def extract_data():
+    # リクエストから部署名を取得
+    department = request.form.get("department", "").strip()
+    # 部署名が空の場合はエラーメッセージを返す
+    if not department:
+        return jsonify({"error": "部署名が指定されていません。"}), 400
+
+    # 部署名でフィルタリング
+    filtered_df = jinji_df[jinji_df['部署'] == department]
+    if filtered_df.empty:
+        return jsonify({"message": "該当するデータがありません。"}), 404
+
+    # フィルタリング結果をjinjifilter_csvに書き出し
+    filtered_df.to_csv(jinjifilter_csv, index=False, encoding="utf-8")
+
+    # フィルタリング結果をJSON形式で返す
+    result = ""
+    for _, row in filtered_df.iterrows():
+        result += f"{row['名前']} : {row['部署']} : {row['メール']} : {row['携帯番号']}"
+
+    return jsonify(result) if result else jsonify({"message": "該当データがありません。"}), 200
 
 # トップページ
 @app.route("/")
@@ -82,7 +133,7 @@ def filter_data():
         result_html = ""
         for _, row in filtered.iterrows():
             tooltip = html.escape(f"メール: {row['メール']} | 携帯: {row['携帯番号']}")
-            result_html += f"<div class='person' data-tooltip='{tooltip}'>{row['名前']} ({row['年齢']}歳) - {row['職業']}</div><br>"
+            result_html += f"<div class='person' data-tooltip='{tooltip}'>{row['名前']} ({row['年齢']}歳) - {row['部署']}</div><br>"
 
         # フィルター結果をjinjifilter_csvに書き出し
         if not filtered.empty:
@@ -116,7 +167,7 @@ def extract_tooltips_v2():
         tooltip = {
             'name': row['名前'],
             'age': row['年齢'],
-            'occupation': row['職業'],
+            'occupation': row['部署'],
             'email': row['メール'],
             'phone': row['携帯番号']
         }
