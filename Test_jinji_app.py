@@ -110,9 +110,13 @@ def extract_data():
     # フィルタリング結果をJSON形式で返す
     result = ""
     for _, row in filtered_df.iterrows():
-        result += f"{row['名前']} : {row['部署']} : {row['メール']} : {row['携帯番号']}"
-
-    return jsonify(result) if result else jsonify({"message": "該当データがありません。"}), 200
+        # 各行のデータをフォーマットして追加
+        if row['年齢'] is not None:
+            result += f"{row['名前']} ({row['年齢']}歳) : {row['メール']} : {row['携帯番号']}\n"
+        else:
+            result += f"{row['名前']} : {row['メール']} : {row['携帯番号']}\n"
+    # 結果が空ならメッセージを返す
+    return jsonify({"response": result}) if result else jsonify({"message": "該当データがありません。"}), 200
 
 # トップページ
 @app.route("/")

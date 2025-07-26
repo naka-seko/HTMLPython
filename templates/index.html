@@ -98,17 +98,18 @@
     }
 </style>
 <body>
-    <h1>対象部署　人事データ</h1>
-    <form action="/抽出" method="POST">
+    <h1>対象部署 人事データ</h1>
+    <form action="/抽出" method="POST" id="data-form">
         <label class="highlight" for="department">部署名を選択して下さい:</label>
         <select id="department" name="department" required>
         </select>
-        <button type="submit">送信</button>
-        <div id="department-result-area"></div>
-        <div id="department-container">
-            <!-- Pythonが生成したツールチップHTMLがここに挿入されます -->
-        </div>
+        <button id="submit-btn" type="button">送信</button>
     </form>
+    <div id="department-result-area">ここに結果が表示されます。</div>
+    <div id="department-container"></div>
+
+</body>
+<form>
     <script>
         // 食魚リストを取得してドロップダウンに追加
         fetch('/get_departments')
@@ -125,8 +126,25 @@
             .catch(error => {
                 console.error('部署リストの取得に失敗しました:', error);
             });
+
+        document.getElementById("submit-btn").addEventListener("click", function() {
+            // フォームデータを収集
+            const formData = new FormData(document.getElementById("data-form"));
+            fetch("/抽出", { method: "POST", body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.response) {
+                        // 結果を整形して表示
+                        document.getElementById("department-result-area").innerHTML =
+                        data.response.replace(/\n/g, "<br>");
+                    } else if (data.message) {
+                        document.getElementById("department-result-area").innerHTML = data.message;
+                    }
+                })
+                .catch(error => console.error("エラー:", error));
+            });
     </script>
-</body>
+</form>
 
 <body>
     <h1>対象年齢　人事データ</h1>
@@ -195,5 +213,6 @@
         })
             .catch(error => console.error("ツールチップデータの取得に失敗しました:", error));
     });
-</script>
+    </script>
+</form>
 </html>
