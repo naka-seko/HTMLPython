@@ -101,7 +101,8 @@
     <h1>対象部署 人事データ</h1>
     <form action="/抽出" method="POST" id="data-form">
         <label class="highlight" for="department">部署名を選択して下さい:</label>
-        <select id="department" name="department" required>
+        <select id="department" name="department" class="highlight-input"
+            required style="width: 200px; height: 45px;">
         </select>
         <button id="submit-btn" type="button">送信</button>
     </form>
@@ -183,19 +184,27 @@
         })
         .then(response => response.text()) // レスポンスをテキストに変換
         .then(data => {
-            if (data.trim()) {
-                const lines = data.split("\n"); // 改行でデータ分割
-                resultArea.innerHTML = ""; // 結果を初期化
-                lines.forEach(line => {
-                    resultArea.style.color = "#006400"; // 深緑色
-                    const lineDiv = document.createElement("div");
-                    lineDiv.innerHTML = line; // innerHTML を使用して HTML を解釈
-                    resultArea.appendChild(lineDiv);
-                });
-            } else {
+            // レスポンスデータが空でないか確認
+            if (!data) {
                 resultArea.style.color = "red"; // 赤色
                 resultArea.textContent = "該当データがありません。";
+                return;
             }
+            // レスポンスデータを改行で分割して表示
+            resultArea.style.color = "#006400"; // 深緑色
+            resultArea.innerHTML = ""; // 結果を初期化
+            const lines = data.split("\n").filter(line => line.trim() !== ""); // 空行を除外
+            if (lines.length === 0) {
+                resultArea.style.color = "red"; // 赤色
+                resultArea.textContent = "該当データがありません。";
+                return;
+            }
+            // 各行を div 要素として追加
+            lines.forEach(line => {
+                const lineDiv = document.createElement("div");
+                lineDiv.innerHTML = line; // innerHTML を使用して HTML を解釈
+                resultArea.appendChild(lineDiv);
+            });
         })
         .catch(error => {
             console.error("エラー:", error);

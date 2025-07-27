@@ -147,13 +147,7 @@ def filter_data():
             pd.DataFrame(columns=jinji_df.columns).to_csv(jinjifilter_csv, index=False, encoding="utf-8")
 
         # フィルター結果を返す。空ならメッセージを返す
-        return result_html if result_html else "該当データがありません。"
-    except KeyError:
-        # 年齢フィールドが存在しない場合
-        return jsonify({"error": "年齢フィールドが見つかりません。"})
-    except ValueError:
-        # 数字以外なら再入力
-        return jsonify({"error": "有効な年齢を入力してください。"})
+        return result_html
     except Exception as e_code:
         # エラー時
         return app.response_class(
