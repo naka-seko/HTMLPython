@@ -110,9 +110,13 @@ def extract_data():
     # フィルタリング結果をJSON形式で返す
     result = ""
     for _, row in filtered_df.iterrows():
-        result += f"{row['名前']} : {row['部署']} : {row['メール']} : {row['携帯番号']}"
-
-    return jsonify(result) if result else jsonify({"message": "該当データがありません。"}), 200
+        # 各行のデータをフォーマットして追加
+        if row['年齢'] is not None:
+            result += f"{row['名前']} ({row['年齢']}歳) : {row['メール']} : {row['携帯番号']}\n"
+        else:
+            result += f"{row['名前']} : {row['メール']} : {row['携帯番号']}\n"
+    # 結果が空ならメッセージを返す
+    return jsonify({"response": result}) if result else jsonify({"message": "該当データがありません。"}), 200
 
 # トップページ
 @app.route("/")
@@ -143,13 +147,7 @@ def filter_data():
             pd.DataFrame(columns=jinji_df.columns).to_csv(jinjifilter_csv, index=False, encoding="utf-8")
 
         # フィルター結果を返す。空ならメッセージを返す
-        return result_html if result_html else "該当データがありません。"
-    except KeyError:
-        # 年齢フィールドが存在しない場合
-        return jsonify({"error": "年齢フィールドが見つかりません。"})
-    except ValueError:
-        # 数字以外なら再入力
-        return jsonify({"error": "有効な年齢を入力してください。"})
+        return result_html
     except Exception as e_code:
         # エラー時
         return app.response_class(

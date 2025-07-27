@@ -98,17 +98,19 @@
     }
 </style>
 <body>
-    <h1>対象部署　人事データ</h1>
-    <form action="/抽出" method="POST">
+    <h1>対象部署 人事データ</h1>
+    <form action="/抽出" method="POST" id="data-form">
         <label class="highlight" for="department">部署名を選択して下さい:</label>
-        <select id="department" name="department" required>
+        <select id="department" name="department" class="highlight-input"
+            required style="width: 200px; height: 45px;">
         </select>
-        <button type="submit">送信</button>
-        <div id="department-result-area"></div>
-        <div id="department-container">
-            <!-- Pythonが生成したツールチップHTMLがここに挿入されます -->
-        </div>
+        <button id="submit-btn" type="button">送信</button>
     </form>
+    <div id="department-result-area">ここに結果が表示されます。</div>
+    <div id="department-container"></div>
+
+</body>
+<form>
     <script>
         // 食魚リストを取得してドロップダウンに追加
         fetch('/get_departments')
@@ -125,8 +127,25 @@
             .catch(error => {
                 console.error('部署リストの取得に失敗しました:', error);
             });
+
+        document.getElementById("submit-btn").addEventListener("click", function() {
+            // フォームデータを収集
+            const formData = new FormData(document.getElementById("data-form"));
+            fetch("/抽出", { method: "POST", body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.response) {
+                        // 結果を整形して表示
+                        document.getElementById("department-result-area").innerHTML =
+                        data.response.replace(/\n/g, "<br>");
+                    } else if (data.message) {
+                        document.getElementById("department-result-area").innerHTML = data.message;
+                    }
+                })
+                .catch(error => console.error("エラー:", error));
+            });
     </script>
-</body>
+</form>
 
 <body>
     <h1>対象年齢　人事データ</h1>
@@ -165,19 +184,27 @@
         })
         .then(response => response.text()) // レスポンスをテキストに変換
         .then(data => {
-            if (data.trim()) {
-                const lines = data.split("\n"); // 改行でデータ分割
-                resultArea.innerHTML = ""; // 結果を初期化
-                lines.forEach(line => {
-                    resultArea.style.color = "#006400"; // 深緑色
-                    const lineDiv = document.createElement("div");
-                    lineDiv.innerHTML = line; // innerHTML を使用して HTML を解釈
-                    resultArea.appendChild(lineDiv);
-                });
-            } else {
+            // レスポンスデータが空でないか確認
+            if (!data) {
                 resultArea.style.color = "red"; // 赤色
                 resultArea.textContent = "該当データがありません。";
+                return;
             }
+            // レスポンスデータを改行で分割して表示
+            resultArea.style.color = "#006400"; // 深緑色
+            resultArea.innerHTML = ""; // 結果を初期化
+            const lines = data.split("\n").filter(line => line.trim() !== ""); // 空行を除外
+            if (lines.length === 0) {
+                resultArea.style.color = "red"; // 赤色
+                resultArea.textContent = "該当データがありません。";
+                return;
+            }
+            // 各行を div 要素として追加
+            lines.forEach(line => {
+                const lineDiv = document.createElement("div");
+                lineDiv.innerHTML = line; // innerHTML を使用して HTML を解釈
+                resultArea.appendChild(lineDiv);
+            });
         })
         .catch(error => {
             console.error("エラー:", error);
@@ -195,5 +222,6 @@
         })
             .catch(error => console.error("ツールチップデータの取得に失敗しました:", error));
     });
-</script>
+    </script>
+</form>
 </html>
